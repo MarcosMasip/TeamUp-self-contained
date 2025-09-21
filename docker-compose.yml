@@ -1,36 +1,67 @@
-version: '3.2'
+version: '3.9'
 
 services:
   db:
-    image: postgres:alpine
-    ports:
-      - 5433:5432
+    image: postgres:13.11-alpine
     environment:
-      POSTGRES_PASSWORD: root
-      POSTGRES_USER: postgres
-      POSTGRES_DB: app
+      POSTGRES_DB: ${APP_DB_NAME:-app}
+      POSTGRES_USER: ${APP_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${APP_DB_PASS:-root}
     volumes:
-      - type: volume
-        source: psql_data
-        target: /var/lib/postgresql/data
-    networks: 
-      - app
-    restart: always
-  inventory:
-    image: 'teamup.jar'
-    depends_on:
-        - db
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APP_DB_USER:-postgres} -d ${APP_DB_NAME:-app}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  mail:
+    image: axllent/mailpit:v1.18
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8025/api/v1/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
     ports:
-      - 8443:8443
+      - 8025:8025
+
+  backend:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      mail:
+        condition: service_started
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/app
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: root
-      SPRING_JPA_HIBERNATE_DDL_AUTO: create
-    networks:
-      - app
-    restart: always
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${APP_DB_NAME:-app}
+      SPRING_DATASOURCE_USERNAME: ${APP_DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASS:-root}
+      APPLICATION_JWT_SECRETKEY: ${APP_JWT_SECRET:-change_me_in_dev}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200,https://localhost:4200}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-mock}
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "${APP_BACKEND_PORT:-8443}:8443"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "https://localhost:8443/api/health", "--no-check-certificate"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  frontend:
+    build: ./socialnetworkingapp-front
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${APP_FRONTEND_PORT:-4200}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
 volumes:
-  psql_data:
-networks: 
-  app:
+  pgdata:
+  uploads:

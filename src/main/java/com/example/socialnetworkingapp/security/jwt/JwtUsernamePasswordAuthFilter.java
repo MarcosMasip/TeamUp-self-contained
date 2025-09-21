@@ -61,7 +61,6 @@ public class JwtUsernamePasswordAuthFilter extends UsernamePasswordAuthenticatio
                 .signWith(secretKey)
                 .compact();
 
-        response.addHeader( jwtConfig.getAuthorizationHeader() , jwtConfig.getTokenPrefix() + access_token);
-        response.addHeader("Access-Control-Allow-Origin", "http://localhost:4200");
+    response.addHeader( jwtConfig.getAuthorizationHeader() , jwtConfig.getTokenPrefix() + access_token);
     }
 }
