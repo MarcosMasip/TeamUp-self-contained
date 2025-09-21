@@ -22,10 +22,10 @@ export class TokenInterceptorService implements HttpInterceptor {
     let newHeaders = req.headers;
 
     //attach token
-    if(token){
-        newHeaders= newHeaders.append(this.auth, this.tokenPrefix + token);
-        newHeaders= newHeaders.append("Access-Control-Allow-Origin","https://localhost:4200");
-    }
+  if(token){
+    newHeaders= newHeaders.append(this.auth, this.tokenPrefix + token);
+    // Removed client-side setting of Access-Control-Allow-Origin (response header managed by server CORS config).
+  }
     //clone this request with the new headers
     const authRequest = req.clone({headers: newHeaders});
 

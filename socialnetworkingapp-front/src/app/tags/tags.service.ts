@@ -27,21 +27,11 @@ export class TagsService {
   }
 
   public getAllTags(): Observable<Tag[]> {
-    return this.http.get<Tag[]>(`${this.url}/tags/all`,
-      {
-        headers: new HttpHeaders( {
-          "Access-Control-Allow-Origin": "http://localhost:4200",
-        })
-      });
+    return this.http.get<Tag[]>(`${this.url}/tags/all`);
   }
 
   public getUserTags(): Observable<Tag[]> {
-    return this.http.get<Tag[]>(`${this.url}/accounts/myTags`,
-      {
-        headers: new HttpHeaders( {
-          "Access-Control-Allow-Origin": "http://localhost:4200",
-        })
-      });
+    return this.http.get<Tag[]>(`${this.url}/accounts/myTags`);
   }
 
 }
