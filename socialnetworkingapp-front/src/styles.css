@@ -1,4 +1,4 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global styles file. External CDN CSS imports removed for self-contained build.
+	Bootstrap and Font Awesome are now provided via npm packages and referenced
+	through angular.json or component-level styles. */
 
-@import 'https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css';
-@import 'https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css';
