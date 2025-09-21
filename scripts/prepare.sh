@@ -20,6 +20,13 @@ if [ "$MODE" = "docker" ]; then
   echo "Pulling dependent images (postgres, mailpit)..."
   docker pull postgres:13.11-alpine || true
   docker pull axllent/mailpit:v1.18 || true
+  echo "Running offline verification..."
+  if ./scripts/offline-verify.sh; then
+    echo "Offline verification passed."
+  else
+    echo "Offline verification failed. Investigate above references." >&2
+    exit 1
+  fi
   echo "Done. Run ./scripts/start.sh"
 else
   echo "Fallback mode (no Docker). Ensuring Java & Node present."
@@ -27,5 +34,11 @@ else
   command -v node >/dev/null || { echo "Node not found"; exit 1; }
   ./mvnw -q dependency:go-offline
   (cd socialnetworkingapp-front && npm ci)
+  echo "Running offline verification (advisory)..."
+  if ./scripts/offline-verify.sh; then
+    echo "Offline verification passed."
+  else
+    echo "(Advisory) Offline verification reported potential external refs."
+  fi
   echo "Fallback prepare complete. Run ./scripts/start.sh"
 fi
