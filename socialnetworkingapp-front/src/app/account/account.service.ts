@@ -1,12 +1,12 @@
 
-import {Observable, throwError} from 'rxjs';
+import {Observable, of, throwError} from 'rxjs';
 import {Injectable} from "@angular/core";
 import {HttpClient, HttpErrorResponse, HttpEventType, HttpHeaders} from "@angular/common/http";
 import {Account} from "./account";
 import {environment} from "../../environments/environment";
 import {Login} from "../login/login";
 import {Bio} from "../bio/bio";
-import { catchError } from 'rxjs/operators';
+import { catchError, switchMap } from 'rxjs/operators';
 import { AccountUpdateRequest } from './accountUpdateRequest';
 import { Education } from '../education/education';
 import { Experience } from '../experience/experience';
@@ -42,7 +42,43 @@ export class AccountService {
   // We keep the method name for backward compatibility but accept a generic payload.
   public registerAccount(registrationRequest: any): Observable<Account> {
     const httpOptions = { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) };
-    return this.http.post<Account>(`${environment.apiBaseUrl}/register`, registrationRequest, httpOptions);
+    const primary = `${environment.apiBaseUrl}/register`;
+    return this.http.post<Account>(primary, registrationRequest, httpOptions).pipe(
+      catchError(err => {
+        // Network error (status 0) -> attempt fallback endpoints
+        if (err.status === 0) {
+          const fallbacks = [
+            primary.replace('https://', 'http://'),
+            primary.replace('/api/register', '/register'),
+            primary.replace('https://localhost:8443/api', 'http://localhost:8080/api'),
+          ];
+          return this.tryFallbacks(fallbacks, registrationRequest, httpOptions, 0);
+        }
+        return throwError(() => err);
+      })
+    );
+  }
+
+  private tryFallbacks(urls: string[], body: any, options: any, index: number): Observable<Account> {
+    if (index >= urls.length) {
+      return throwError(() => ({ status: 0, message: 'All fallback registration attempts failed' }));
+    }
+  return (this.http.post<Account>(urls[index], body, { headers: options.headers, responseType: 'json' as const }) as Observable<Account>).pipe(
+      catchError(err => {
+        if (err.status === 0) {
+          return this.tryFallbacks(urls, body, options, index + 1);
+        }
+        return throwError(() => err);
+      })
+    );
+  }
+
+  public pingHealth(): Observable<boolean> {
+    const url = `${environment.apiBaseUrl}/health`;
+    return this.http.get(url, { responseType: 'text' }).pipe(
+      switchMap(() => of(true)),
+      catchError(() => of(false))
+    );
   }
 
   public updateAccount(account: Account): Observable<Account> {

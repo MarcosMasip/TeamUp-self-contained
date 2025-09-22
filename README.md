@@ -40,6 +40,16 @@ Admin login credentials (seeded data):
 * Email: admin@admin.com
 * Password: adminadmin
 
+### Registration / HTTPS Troubleshooting (New)
+If the Register action shows "Cannot reach server. Check your network connection." (status 0 in DevTools):
+1. Likely browser rejected the self-signed certificate for https://localhost:8443.
+2. Import the backend cert (`teamup.p12` -> export with keytool, or reuse existing `socialnetworkingapp-front/src/ssl/server.crt` if aligned) into your OS trust store.
+3. Retry registration (hard refresh). The frontend now attempts fallback endpoints automatically if the primary HTTPS call network-fails.
+4. Interim workaround: temporarily set `apiBaseUrl` to `http://localhost:8443/api` in `environment.ts` (only if backend SSL is actually disabled in your local profile) OR run via Docker where the certificate is consistent.
+5. Check console for CORS—CORS is centrally allowed via `CorsConfig`. If you customized origins, ensure `http(s)://localhost:4200` remains included.
+
+Once the certificate is trusted, you may remove the fallback retry logic in `account.service.ts` (method `registerAccount`) to simplify code.
+
 Troubleshooting login ("Wrong Credentials" immediately):
 If the admin credentials fail instantly but you are sure they are correct, open the browser dev tools (Network tab) and inspect the `/login` request:
 * If it was sent to `https://localhost:8443/api/login` and failed with a network / certificate error, you're likely running in fallback (non‑Docker) mode where backend SSL is disabled, yet the frontend pointed to `https://`.
