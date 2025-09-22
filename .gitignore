@@ -34,3 +34,6 @@ build/
 
 ./springboot.p12
 ./src/main/resources/springboot.p12
+
+### Environment Files (generated or local overrides) ###
+.env

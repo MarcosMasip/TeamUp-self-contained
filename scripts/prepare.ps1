@@ -23,9 +23,25 @@ if ($Mode -eq 'docker') {
   Write-Host 'Fallback mode (no Docker). Ensuring Java & Node present.'
   if (-not (Get-Command java -ErrorAction SilentlyContinue)) { throw 'Java not found' }
   if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'Node not found' }
+  try { $nodeVer = (node -v) } catch { $nodeVer = '' }
+  if ($nodeVer -match '^v([0-9]+)') {
+    $major = [int]$Matches[1]
+    if ($major -ge 18) {
+      Write-Host "[warn] Detected Node $major.x. Project targets Node 14 (see .nvmrc). Engine warnings may appear." -ForegroundColor Yellow
+    }
+  }
   ./mvnw -q dependency:go-offline
   Push-Location socialnetworkingapp-front
-  npm ci
+  $ciOk = $true
+  try { npm ci } catch { $ciOk = $false }
+  if (-not $ciOk) {
+    Write-Host '[info] npm ci failed (lock mismatch or engine). Regenerating lock with npm install...' -ForegroundColor Cyan
+    if (Test-Path package-lock.json) { Remove-Item package-lock.json -Force }
+    $installOk = $true
+    try { npm install --legacy-peer-deps } catch { $installOk = $false }
+    if (-not $installOk) { throw '[error] npm install failed even with --legacy-peer-deps. Use Node 14.x or resolve peer conflicts.' }
+    Write-Host '[info] New lock file generated using legacy peer deps.' -ForegroundColor Cyan
+  }
   Pop-Location
   Write-Host 'Running offline verification (advisory)...'
   if (pwsh -File "$PSScriptRoot/offline-verify.ps1") { Write-Host 'Offline verification passed.' }

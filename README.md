@@ -684,3 +684,27 @@ that post.
 
 ## Fonts
 Local `@font-face` declarations reference placeholder Montserrat files under `socialnetworkingapp-front/src/assets/fonts/`. Supply actual `.woff2` / `.woff` files (only needed weights) to avoid licensing surprises and reduce bundle size.
+
+### Node & NPM Fallback Strategy (NEW 2025 Refresh)
+The project targets Node.js 14.x for local *fallback* and *dev* modes (see `.nvmrc`). If you have a newer Node (18+ / 20+ / 22+ / 24+), strict peer dependency resolution and an outdated `package-lock.json` could otherwise break first install.
+
+Our `prepare` scripts now implement an adaptive strategy:
+1. Attempt `npm ci` (fast, reproducible) when a lock file exists.  
+2. If it fails due to lock mismatch / peer conflicts / engine warnings, the script automatically:  
+   - Removes the stale `package-lock.json`.  
+   - Runs `npm install --legacy-peer-deps` to generate a fresh lock aligned with the current `package.json`.  
+3. Subsequent runs will succeed with `npm ci` using the regenerated lock.
+
+Implications:
+- You may see a large `package-lock.json` change on the first run after updating to this self-contained refresh. Commit it once in feature branches; the main branch will carry the canonical lock.
+- For the **most deterministic** local experience (and for CI), use Node 14.x (`nvm install 14 && nvm use 14`).
+- The fallback uses `--legacy-peer-deps` only when necessary (it does **not** mask other errors—if the second step fails, you will see a clear error suggesting Node 14).
+
+Verify your Node version quickly:
+```bash
+node -v   # Expect v14.x for a clean reproducible path
+```
+If it prints a much higher major version and you want fully strict installs, switch with `nvm` or similar.
+
+### Generated .env Handling
+If `.env` is missing, `prepare` copies `.env.example` -> `.env`. The root `.gitignore` now ignores `.env` so your local edits (ports, secrets) never appear as untracked noise.
