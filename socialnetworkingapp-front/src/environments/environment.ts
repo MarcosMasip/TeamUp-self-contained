@@ -4,7 +4,9 @@
 
 export const environment = {
   production: false,
-  apiBaseUrl: 'https://localhost:8443/api'
+  // In local fallback mode (./scripts/start.sh without Docker) backend runs with profile local-h2 (SSL disabled)
+  // so the dev API must use http. The production build keeps https (see environment.prod.ts).
+  apiBaseUrl: 'http://localhost:8443/api'
 };
 
 /*
