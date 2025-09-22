@@ -101,6 +101,7 @@ Windows specifics:
 macOS / Linux:
 - Ensure scripts are executable: `chmod +x scripts/*.sh` (already committed with +x if cloned on a Unix filesystem).
 - Run: `./scripts/prepare.sh` then `./scripts/start.sh`.
+ - If you see `permission denied: ./scripts/prepare.sh`, your clone lost execute bits (e.g. due to ZIP download or filesystem). Fix with: `chmod +x scripts/*.sh` then re-run.
 
 Ports & Conflicts:
 - Backend: `${APP_BACKEND_PORT:-8443}` (HTTPS)
