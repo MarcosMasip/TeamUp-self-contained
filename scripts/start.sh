@@ -49,6 +49,24 @@ else
       if command -v lsof >/dev/null 2>&1; then
         echo "Process using port $p:" >&2
         lsof -iTCP:"$p" -sTCP:LISTEN -n -P || true
+        # If this is the backend port and looks like a prior Java/Spring instance, offer auto-kill
+        if [ "$p" = "${APP_BACKEND_PORT:-8443}" ]; then
+          STALE_PID=$(lsof -t -iTCP:"$p" -sTCP:LISTEN | head -1 || true)
+          if [ -n "${STALE_PID}" ]; then
+            CMD_LINE=$(ps -p "$STALE_PID" -o command= || echo "")
+            if echo "$CMD_LINE" | grep -qi "spring" || echo "$CMD_LINE" | grep -qi "SocialNetworkingApp"; then
+              echo "Attempting to terminate stale backend process PID $STALE_PID..." >&2
+              kill "$STALE_PID" 2>/dev/null || true
+              sleep 1
+              if check_port_free "$p"; then
+                echo "Stale process removed; continuing startup." >&2
+                continue
+              else
+                echo "Auto-termination failed; port still busy." >&2
+              fi
+            fi
+          fi
+        fi
       fi
       echo "Resolve by: (a) stopping the process above, or (b) editing .env to change APP_BACKEND_PORT / APP_FRONTEND_PORT and re-run prepare/start." >&2
       echo "Abort." >&2
