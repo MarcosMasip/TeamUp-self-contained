@@ -26,6 +26,146 @@ Stop services:
 - Docker mode: `docker compose down`
 - Fallback: Ctrl+C in terminal.
 
+### Step-by-Step First Run (With Expected Output)
+
+The examples below show a typical first clone on a machine that DOES have Docker running. Lines starting with `#` are comments; `→` indicates truncated example output.
+
+#### 1. Clone & Enter
+```bash
+git clone https://github.com/MarcosMasip/TeamUp-self-contained.git
+cd TeamUp-self-contained
+```
+
+#### 2. (Optional) Verify Tooling
+```bash
+./scripts/check-platform.sh
+# Java: openjdk version "1.8.0_..."
+# Node: v14.21.3
+# Docker: Docker version 26.x.x, build ...
+# Docker Compose: plugin available
+```
+
+Windows PowerShell equivalent:
+```powershell
+pwsh ./scripts/check-platform.ps1
+```
+
+#### 3. Prepare
+```bash
+./scripts/prepare.sh
+# [prepare] Mode: docker
+# Building backend image...
+# Sending build context to Docker daemon  →
+# Step 1/.. FROM eclipse-temurin:8-jdk
+#  ... (Maven dependency:go-offline) ...
+#  ... (Packaging jar) ...
+# Building frontend image...
+#  ... (npm ci) ...
+#  ... (Angular production build) ...
+# Pulling dependent images (postgres, mailpit)...
+# Running offline verification...
+# [offline-verify] PASS: No external URL references detected.
+# Done. Run ./scripts/start.sh
+```
+
+If Docker is NOT available you will instead see:
+```
+[prepare] Mode: fallback
+Fallback mode (no Docker). Ensuring Java & Node present.
+... (Maven dependency:go-offline) ...
+... (npm ci) ...
+Running offline verification (advisory)...
+Offline verification passed.
+Fallback prepare complete. Run ./scripts/start.sh
+```
+
+PowerShell (Windows) version:
+```powershell
+pwsh ./scripts/prepare.ps1
+```
+Or double‑click `scripts/prepare.cmd`.
+
+#### 4. Start
+```bash
+./scripts/start.sh
+# Starting services (docker compose)...
+# Creating network ... →
+# Creating volume  ... →
+# Creating container db ...
+# Waiting for database port...
+# [retry] Attempt 1 failed, retrying in 2s... (if slow)
+# Waiting for backend health...
+# Application started.
+# Frontend: http://localhost:4200
+# Backend API: https://localhost:8443/api
+# Mail UI: http://localhost:8025 (if using mail)
+# Admin login: admin@admin.com / adminadmin
+```
+
+Fallback (no Docker) output example:
+```
+Starting fallback local mode...
+Backend PID 12345
+Frontend PID 12346
+Press Ctrl+C to stop.
+```
+
+PowerShell (Windows):
+```powershell
+pwsh ./scripts/start.ps1
+```
+Or double‑click `scripts/start.cmd`.
+
+#### 5. Verify Health
+```bash
+./scripts/health.sh
+# Checking backend...
+# Backend OK
+# Checking frontend...
+# Frontend OK
+# All healthy.
+```
+PowerShell:
+```powershell
+pwsh ./scripts/health.ps1
+```
+
+Manual curl check:
+```bash
+curl -k https://localhost:8443/api/health
+{"status":"UP"}
+```
+
+#### 6. Log In (Browser)
+Visit `http://localhost:4200` and use:
+- Email: `admin@admin.com`
+- Password: `adminadmin`
+
+#### 7. Stop
+```bash
+docker compose down  # Docker mode
+# OR (fallback) use Ctrl+C in the terminal running the processes
+```
+
+#### 8. One-Liner (Unix-Like)
+```bash
+git clone https://github.com/MarcosMasip/TeamUp-self-contained.git \
+&& cd TeamUp-self-contained \
+&& ./scripts/prepare.sh \
+&& ./scripts/start.sh
+```
+
+#### 9. Common First-Run Issues
+| Symptom | Example Log Snippet | Action |
+|---------|---------------------|--------|
+| Permission denied | `zsh: permission denied: ./scripts/prepare.sh` | `chmod +x scripts/*.sh` then retry |
+| Docker engine not running | `Cannot connect to the Docker daemon` | Start Docker Desktop or run fallback mode (leave as-is) |
+| Slow backend start | Repeated health poll | Wait; Postgres init on first run can take ~5–15s |
+| Port in use (fallback) | `Port 4200 already in use. Abort.` | Change `APP_FRONTEND_PORT` in `.env` or free the port |
+| Cert warning | Browser HTTPS warning | Accept self-signed cert locally |
+
+---
+
 ### Architecture Overview
 
 | Layer        | Technology | Notes |
