@@ -42,6 +42,20 @@ Admin login credentials (seeded data):
 
 If ports are customized in `.env`, substitute your values.
 
+### Frontend HTTPS vs HTTP (New Toggle)
+By default (fallback/local mode) the Angular dev server now runs with HTTPS using a self‑signed certificate that lives at `socialnetworkingapp-front/src/ssl/server.crt` + `server.key`. Browsers will warn (`NET::ERR_CERT_AUTHORITY_INVALID`). You have three options:
+
+| Goal | Action |
+|------|--------|
+| Keep HTTPS & remove warning (macOS/Linux) | Run `./scripts/trust-frontend-cert.sh` (prompts for sudo; adds cert to system trust) |
+| Keep HTTPS & remove warning (Windows) | Import `socialnetworkingapp-front/src/ssl/server.crt` into Trusted Root Certification Authorities (Current User) via `certmgr.msc` |
+| Temporarily proceed | Click Advanced > Continue (unsafe) in browser warning page |
+| Use plain HTTP (no warning) | Start with `FRONTEND_SSL=0 ./scripts/start.sh` (bash) or `$env:FRONTEND_SSL=0; ./scripts/start.ps1` (PowerShell) |
+
+Re‑enable HTTPS by omitting the variable or setting `FRONTEND_SSL=1`.
+
+Note: Disabling frontend SSL does NOT disable backend HTTPS. API calls still go through the Angular dev proxy avoiding mixed content problems.
+
 ### JWT Secret Handling (Security Convenience)
 The Spring Boot backend now validates the configured JWT secret strength at startup.
 * If `JWT_SECRET` / property is strong (>=256-bit after Base64 decode or raw bytes), it is used directly.
