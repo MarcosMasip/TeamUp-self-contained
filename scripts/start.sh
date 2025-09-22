@@ -51,7 +51,19 @@ else
   ./mvnw spring-boot:run -Dspring-boot.run.profiles=local-h2 &
   BACK_PID=$!
   echo "Backend PID $BACK_PID"
-  (cd socialnetworkingapp-front && npx ng serve) &
+  (
+    cd socialnetworkingapp-front
+    if command -v node >/dev/null 2>&1; then
+      NODE_MAJ=$(node -v | sed -E 's/v([0-9]+).*/\1/')
+      if [ "$NODE_MAJ" -ge 17 ]; then
+        if [[ "${NODE_OPTIONS:-}" != *"--openssl-legacy-provider"* ]]; then
+          export NODE_OPTIONS="${NODE_OPTIONS:-} --openssl-legacy-provider"
+          echo "[info] Applied --openssl-legacy-provider for Webpack 4 compatibility (Node $NODE_MAJ)."
+        fi
+      fi
+    fi
+    npx ng serve
+  ) &
   FRONT_PID=$!
   echo "Frontend PID $FRONT_PID"
   echo "Press Ctrl+C to stop."

@@ -226,6 +226,13 @@ git clone https://github.com/MarcosMasip/TeamUp-self-contained.git \
 
 ---
 
+Additional Dependency Note (Jasmine Peer Conflict):
+- If you previously saw an `ERESOLVE` error referencing `karma-jasmine-html-reporter@1.7.0` requiring `jasmine-core@>=3.8` while the lock (or `package.json`) still listed `jasmine-core@~3.7.0`, this has been resolved by bumping `jasmine-core` to `~3.8.0`.
+- Action taken: Updated `socialnetworkingapp-front/package.json` devDependency `jasmine-core` to `~3.8.0` and regenerated the lock file using the scripted fallback (`npm install --legacy-peer-deps` under modern npm).
+- Rationale: Align with reporter's peer dependency to avoid `npm ci` hard failure under deterministic installs.
+- If you re‑generate the lock with an older npm (v7/v8) you may see different metadata ordering only; functional graph remains identical.
+- No source code changes required; test runner compatibility remains the same.
+
 ### Architecture Overview
 
 | Layer        | Technology | Notes |
@@ -326,6 +333,8 @@ Troubleshooting Quick Reference:
 | Backend health fails in Docker start | Slow Postgres init | Re-run `./scripts/start.sh`; readiness retry already built-in |
 | Frontend 404 in browser (Docker mode) | Angular build not yet served / container not up | Wait a few seconds or check `docker compose ps` |
 | Port already in use (fallback) | Another service occupying 4200/8443 | Stop conflicting process or change port in `.env` |
+| Maven compile NoSuchFieldError JCTree$JCImport.qualid | Older Lombok + mixed compiler config on modern JDK (21) | Updated Lombok + single compiler plugin already in repo; if using a much older clone: pull latest or build with JDK 11 |
+| Webpack ERR_OSSL_EVP_UNSUPPORTED | Angular 12 / Webpack 4 on Node >=17 (OpenSSL 3) | Start scripts auto-add `--openssl-legacy-provider`; or use Node 14; upgrade Angular later |
 
 ### Platform Validation (Optional)
 You can add (or we may later include) a `scripts/check-platform.sh` / `.ps1` to print detected versions. For now, quickly check:

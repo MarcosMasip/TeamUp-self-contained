@@ -37,6 +37,18 @@ if ($Mode -eq 'docker') {
   }
   Start-Process -FilePath ./mvnw -ArgumentList 'spring-boot:run','-Dspring-boot.run.profiles=local-h2'
   Push-Location socialnetworkingapp-front
+  if (Get-Command node -ErrorAction SilentlyContinue) {
+    try { $nodeVer = node -v } catch { $nodeVer = '' }
+    if ($nodeVer -match '^v([0-9]+)') {
+      $nodeMajor = [int]$Matches[1]
+      if ($nodeMajor -ge 17) {
+        if (-not $Env:NODE_OPTIONS -or ($Env:NODE_OPTIONS -notmatch '--openssl-legacy-provider')) {
+          $Env:NODE_OPTIONS = ("$($Env:NODE_OPTIONS) --openssl-legacy-provider").Trim()
+          Write-Host "[info] Applied --openssl-legacy-provider for Webpack 4 compatibility (Node $nodeMajor)." -ForegroundColor Cyan
+        }
+      }
+    }
+  }
   Start-Process -FilePath npx -ArgumentList 'ng','serve'
   Pop-Location
   Write-Host 'Processes started (check separate windows).' 
