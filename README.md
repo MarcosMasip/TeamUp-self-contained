@@ -789,3 +789,46 @@ If it prints a much higher major version and you want fully strict installs, swi
 
 ### Generated .env Handling
 If `.env` is missing, `prepare` copies `.env.example` -> `.env`. The root `.gitignore` now ignores `.env` so your local edits (ports, secrets) never appear as untracked noise.
+
+### Recent Authentication & Security Fixes (2025 Refresh)
+
+This branch includes a set of backend authentication hardening and developer‑experience improvements:
+
+| Change | Rationale | Impact |
+|--------|-----------|--------|
+| Login endpoint relocated to `/auth/login` (was implicit `/login`) | Avoid collision with Spring Security default form endpoint; clearer namespace | Frontend now targets `/api/auth/login` (context path adds `/api`) |
+| Explicit `permitAll` for `/auth/**` and `/api/auth/**` | Integration tests hit context‑relative path; avoids accidental 403 during token issuance | Reliable automated login test |
+| Replaced custom `UserNotFoundException` with Spring `UsernameNotFoundException` | Prevents wrapping into `InternalAuthenticationServiceException` that masked cause and produced 403 | Clear 401/403 semantics and simpler debugging |
+| Added detailed logging in `AccountService#loadUserByUsername` | Trace credential lookup path | Faster root cause isolation of auth issues |
+| Added `AdminBootstrap` (local-h2 profile) | Deterministic admin presence without `import.sql` dependency | Immediate usable credentials for local dev |
+| Disabled large `import.sql` seed (renamed to `import_disabled_tmp.sql`) | FK chain noise made debugging harder; bootstrap covers essentials | Cleaner startup logs |
+| Fixed H2 schema issue for file storage (removed PostgreSQL compatibility mode) | H2 `MODE=PostgreSQL` rejected `BLOB` definition; reverted to default dialect | In‑memory profile starts cleanly |
+| Added integration test `AuthIntegrationTest` | Guards regression of login flow & JWT generation | CI safety net (status 200, token + role assertions) |
+
+Admin Credentials (local-h2 profile):
+```
+Email: admin@admin.com
+Password: adminadmin
+```
+
+Troubleshooting Quick Tips:
+* 403 on `/auth/login` in tests: ensure `server.servlet.context-path=/api` still set and test uses `/auth/login` (NOT `/api/auth/login`).
+* 403 with `InternalAuthenticationServiceException`: confirm you are on a commit containing the switch to `UsernameNotFoundException`.
+* H2 DDL error `Unknown data type: "BLOB"`: verify your `application-local-h2.properties` does NOT include `MODE=PostgreSQL`.
+* If admin user missing (unlikely): confirm `local-h2` profile active; run with `-Dspring-boot.run.profiles=local-h2` or `SPRING_PROFILES_ACTIVE=local-h2`.
+
+Security Filter Chain (simplified):
+```
+JwtTokenVerifier -> UsernamePasswordAuthenticationFilter (login issues token) -> Authorization filters
+```
+
+The integration test asserts JSON response schema:
+```json
+{
+  "username": "admin@admin.com",
+  "token": "<JWT>",
+  "role": "ADMIN"
+}
+```
+
+> NOTE: In real deployments consider rotating the admin bootstrap into a migration or guarded initializer to avoid accidental admin recreation outside dev profiles.
