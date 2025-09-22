@@ -17,16 +17,16 @@ import {Tag} from '../tags/Tag'
 })
 export class RegisterComponent implements OnInit {
 
-  registerForm: FormGroup;
+  registerForm!: FormGroup;
   correctCredentials = true;
-  selectedFiles: FileList;
-  currentFile: File;
+  selectedFiles: FileList | null = null;
+  currentFile: File | null = null;
   progress = 0;
   message = '';
-  TagsArray : Tag[];
+  TagsArray : Tag[] = [];
 
 
-    private account: Account;
+  private account!: Account;
 
     constructor(
         private accountService: AccountService,
@@ -58,9 +58,13 @@ export class RegisterComponent implements OnInit {
         );
 
         this.tagsService.getAllTags().subscribe(
-        (response: Tag[]) => {
-            this.TagsArray= response;
-            }
+          (response: Tag[]) => {
+            this.TagsArray = response;
+          },
+          (err) => {
+            console.error('[register] Failed to load tags', err);
+            this.TagsArray = [];
+          }
         );
 
     }
@@ -93,11 +97,16 @@ export class RegisterComponent implements OnInit {
 
     upload() {
         this.progress = 0;
-        this.currentFile = this.selectedFiles.item(0);
-        this.uploadService.uploadUser(this.currentFile, this.authenticationService.getJWT()).subscribe(
+    if(!this.selectedFiles || this.selectedFiles.length === 0){
+      return;
+    }
+    const first = this.selectedFiles.item(0);
+    if(!first){ return; }
+    this.currentFile = first;
+    this.uploadService.uploadUser(this.currentFile, this.authenticationService.getJWT()).subscribe(
             event => {
-                if (event.type === HttpEventType.UploadProgress) {
-                    this.progress = Math.round(100 * event.loaded / event.total);
+        if (event.type === HttpEventType.UploadProgress && event.total) {
+          this.progress = Math.round(100 * event.loaded / event.total);
                 } else if (event instanceof HttpResponse) {
                     this.message = event.body.message;
                 }
@@ -106,10 +115,9 @@ export class RegisterComponent implements OnInit {
             err => {
                 this.progress = 0;
                 this.message = 'Could not upload the file!';
-                this.currentFile = undefined;
+        this.currentFile = null;
             });
-
-        this.selectedFiles = undefined;
+    this.selectedFiles = null;
     }
 
   public onRegister(registerForm: FormGroup): void {

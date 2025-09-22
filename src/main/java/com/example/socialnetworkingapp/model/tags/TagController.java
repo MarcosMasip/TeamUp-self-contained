@@ -14,7 +14,8 @@ import java.util.List;
 
 @AllArgsConstructor
 @RestController
-@RequestMapping("/tags")
+// Expose both legacy path (/tags) and API namespaced path (/api/tags) for frontend which prefixes apiBaseUrl '/api'.
+@RequestMapping({"/tags", "/api/tags"})
 public class TagController {
 
     private TagService tagService;
