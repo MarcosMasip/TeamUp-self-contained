@@ -21,6 +21,7 @@ import com.example.socialnetworkingapp.model.tags.Tag;
 import com.example.socialnetworkingapp.model.tags.TagService;
 import com.example.socialnetworkingapp.registration.RegistrationRequest;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,6 +35,7 @@ import java.util.*;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class AccountService implements UserDetailsService {
     private final AccountRepository accountRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -304,7 +306,16 @@ public class AccountService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return accountRepository.findAccountByEmail(email).orElseThrow( () -> new UserNotFoundException("User with email " + email + " was not found!"));
+        log.debug("Attempting to load user by email: {}", email);
+        return accountRepository.findAccountByEmail(email)
+                .map(acc -> {
+                    log.debug("Successfully loaded user: id={}, role={}", acc.getId(), acc.getRole());
+                    return acc;
+                })
+                .orElseThrow(() -> {
+                    log.warn("User not found for email: {}", email);
+                    return new UsernameNotFoundException("User with email " + email + " was not found");
+                });
     }
 
     public boolean passwordConfirmation(String password) {
