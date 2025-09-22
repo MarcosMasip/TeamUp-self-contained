@@ -7,13 +7,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/login")
+@RequestMapping("/auth")
 @AllArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping
+    @PostMapping("/login")
     public AuthResponse login(@RequestBody LoginRequest loginRequest){
         return authService.login(loginRequest);
     }

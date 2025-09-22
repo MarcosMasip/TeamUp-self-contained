@@ -42,11 +42,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http.cors();
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
     http.authorizeRequests().antMatchers("/register/**").permitAll()
-                .antMatchers("/login/**").permitAll()
+                .antMatchers("/auth/**").permitAll()
                 .antMatchers("/health").permitAll()
                 .antMatchers("/tags/**", "/api/tags/**").permitAll()
                 .antMatchers("/files/**").permitAll()
                 .anyRequest().authenticated();
+
+        http.formLogin().disable();
 
         http.addFilterBefore(new JwtTokenVerifier(secretKey, jwtConfig), UsernamePasswordAuthenticationFilter.class);
     }

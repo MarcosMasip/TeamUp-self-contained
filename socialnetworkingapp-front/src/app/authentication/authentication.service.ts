@@ -11,7 +11,7 @@ import { LocalStorageService } from 'ngx-webstorage';
 })
 export class AuthenticationService{
 
-    private currentUser: string;
+    private currentUser: string = '';
     private loggedIn = false ;
     private role = 'USER';
 
@@ -19,7 +19,7 @@ export class AuthenticationService{
     }
 
     public logIn(credentials: Login): Observable<boolean> {
-    return this.http.post<any>(`${environment.apiBaseUrl}/login`, credentials).pipe(map(data => {
+    return this.http.post<any>(`${environment.apiBaseUrl}/auth/login`, credentials).pipe(map(data => {
         this.localStorage.store('token', data.token);
         this.localStorage.store('username', data.username)
         this.localStorage.store('role', data.role)
