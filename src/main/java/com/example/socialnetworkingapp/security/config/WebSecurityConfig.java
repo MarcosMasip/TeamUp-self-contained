@@ -41,10 +41,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http.csrf().disable();
         http.cors();
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-        http.authorizeRequests().antMatchers("/register/**").permitAll()
-                                .antMatchers("/login/**").permitAll()
-                                .antMatchers("/tags/**").permitAll()
-                                .antMatchers("/files/**").permitAll()
+    http.authorizeRequests().antMatchers("/register/**").permitAll()
+                .antMatchers("/login/**").permitAll()
+                .antMatchers("/tags/**", "/api/tags/**").permitAll()
+                .antMatchers("/files/**").permitAll()
                 .anyRequest().authenticated();
 
         http.addFilterBefore(new JwtTokenVerifier(secretKey, jwtConfig), UsernamePasswordAuthenticationFilter.class);
