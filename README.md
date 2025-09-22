@@ -4,14 +4,74 @@
 
 This repository has been upgraded to be fully reproducible and offline‑capable: one command to prepare, one to run. All previous documentation follows below; this section summarizes the new operational model.
 
-### Quick Start
+### Quick Start (TL;DR)
 
-Clone the repo and run:
+```bash
+git clone https://github.com/MarcosMasip/TeamUp-self-contained.git
+cd TeamUp-self-contained
+chmod +x scripts/*.sh   # only needed if execute bits were stripped
+./scripts/prepare.sh    # builds images OR prepares local fallback
+./scripts/start.sh      # launches stack
+```
 
+Windows PowerShell (analog):
+```powershell
+git clone https://github.com/MarcosMasip/TeamUp-self-contained.git
+cd TeamUp-self-contained
+pwsh ./scripts/prepare.ps1
+pwsh ./scripts/start.ps1
 ```
-./scripts/prepare.sh   # builds Docker images or prepares local fallback
-./scripts/start.sh     # launches full stack (Docker) OR local fallback if Docker unavailable
+
+If you prefer a single chained command (Unix-like):
+```bash
+git clone https://github.com/MarcosMasip/TeamUp-self-contained.git && cd TeamUp-self-contained && chmod +x scripts/*.sh && ./scripts/prepare.sh && ./scripts/start.sh
 ```
+
+### First-Time Clone Checklist (Recommended)
+1. Clone & cd into directory.
+2. (Optional) Ensure shell scripts are executable:
+  ```bash
+  chmod +x scripts/*.sh
+  ```
+3. (Optional) Inspect platform prerequisites & versions:
+  ```bash
+  ./scripts/check-platform.sh
+  # or: pwsh ./scripts/check-platform.ps1
+  ```
+4. Run prepare (downloads deps / builds images):
+  ```bash
+  ./scripts/prepare.sh
+  # or: pwsh ./scripts/prepare.ps1
+  ```
+5. Start the stack:
+  ```bash
+  ./scripts/start.sh
+  # or: pwsh ./scripts/start.ps1
+  ```
+6. Verify (optional but fast):
+  ```bash
+  ./scripts/health.sh
+  ```
+7. Log in via browser (admin creds below in Step-by-Step section).
+
+### Permission Denied? (macOS/Linux)
+Example:
+```bash
+./scripts/prepare.sh
+zsh: permission denied: ./scripts/prepare.sh
+```
+Cause: File execute bits lost (often due to downloading a ZIP or certain SCM settings).
+Fix:
+```bash
+chmod +x scripts/*.sh
+./scripts/prepare.sh
+```
+Alternative (without changing bits) you can invoke explicitly:
+```bash
+bash scripts/prepare.sh
+```
+
+---
 
 Then visit:
 - Frontend (Docker mode): http://localhost:${APP_FRONTEND_PORT:-4200}
