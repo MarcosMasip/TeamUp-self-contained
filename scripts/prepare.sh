@@ -42,19 +42,36 @@ else
   NODE_MAJOR=$(node -v | sed -E 's/v([0-9]+).*/\1/')
   if [ "$NODE_MAJOR" -ge 18 ]; then
     echo "[warn] Detected Node $NODE_MAJOR.x. This project targets Node 14 (see .nvmrc)."
-    echo "[warn] You may see npm engine warnings. Using 'npm install' fallback if 'npm ci' fails."
+    echo "[warn] Using adaptive install: skipping strict 'npm ci' (known to fail with modern npm + legacy Angular lock)."
   fi
   ./mvnw -q dependency:go-offline
   (
     cd socialnetworkingapp-front
-    if ! npm ci; then
-      echo "[info] npm ci failed (lock mismatch or engine). Regenerating lock with 'npm install'..."
+    # Decide whether to attempt npm ci (only if Node 14 and lock present) else go straight to resilient path
+    ATTEMPT_CI=1
+    if [ "$NODE_MAJOR" -ge 18 ]; then
+      ATTEMPT_CI=0
+    fi
+    if [ ! -f package-lock.json ]; then
+      ATTEMPT_CI=0
+    fi
+    if [ $ATTEMPT_CI -eq 1 ]; then
+      echo "[info] Attempting deterministic install with 'npm ci'..."
+      if npm ci; then
+        echo "[info] npm ci succeeded (strict mode)."
+      else
+        echo "[info] npm ci failed (engine or lock metadata). Falling back to resilient install..."
+        ATTEMPT_CI=0
+      fi
+    fi
+    if [ $ATTEMPT_CI -eq 0 ]; then
+      echo "[info] Performing resilient install: 'npm install --legacy-peer-deps' (may update lock)."
       rm -f package-lock.json
       if ! npm install --legacy-peer-deps; then
-        echo "[error] npm install failed even with --legacy-peer-deps. Please ensure Node 14.x or investigate peer conflicts." >&2
+        echo "[error] Resilient install failed even with --legacy-peer-deps. Try Node 14.x (see .nvmrc) or inspect peer conflicts." >&2
         exit 1
       fi
-      echo "[info] New lock file generated using legacy peer deps. (Future runs will attempt npm ci first.)"
+      echo "[info] Resilient install complete. Future runs under Node 14 will use npm ci." 
     fi
   )
   echo "Running offline verification (advisory)..."

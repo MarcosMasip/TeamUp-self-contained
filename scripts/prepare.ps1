@@ -27,20 +27,34 @@ if ($Mode -eq 'docker') {
   if ($nodeVer -match '^v([0-9]+)') {
     $major = [int]$Matches[1]
     if ($major -ge 18) {
-      Write-Host "[warn] Detected Node $major.x. Project targets Node 14 (see .nvmrc). Engine warnings may appear." -ForegroundColor Yellow
+      Write-Host "[warn] Detected Node $major.x. Using adaptive install: skipping strict 'npm ci' (legacy Angular lock not fully compatible with modern npm)." -ForegroundColor Yellow
+    } else {
+      Write-Host "[info] Node $major.x within legacy target range; will attempt strict 'npm ci'." -ForegroundColor Cyan
     }
   }
   ./mvnw -q dependency:go-offline
   Push-Location socialnetworkingapp-front
-  $ciOk = $true
-  try { npm ci } catch { $ciOk = $false }
-  if (-not $ciOk) {
-    Write-Host '[info] npm ci failed (lock mismatch or engine). Regenerating lock with npm install...' -ForegroundColor Cyan
+  $attemptCi = $true
+  if ($major -ge 18) { $attemptCi = $false }
+  if (-not (Test-Path package-lock.json)) { $attemptCi = $false }
+  if ($attemptCi) {
+    Write-Host "[info] Attempting deterministic install with 'npm ci'..." -ForegroundColor Cyan
+    $ciSucceeded = $true
+    try { npm ci } catch { $ciSucceeded = $false }
+    if ($ciSucceeded) {
+      Write-Host "[info] npm ci succeeded (strict mode)." -ForegroundColor Green
+    } else {
+      Write-Host "[info] npm ci failed (engine or lock metadata). Falling back to resilient install..." -ForegroundColor Cyan
+      $attemptCi = $false
+    }
+  }
+  if (-not $attemptCi) {
+    Write-Host "[info] Performing resilient install: 'npm install --legacy-peer-deps' (may update lock)." -ForegroundColor Cyan
     if (Test-Path package-lock.json) { Remove-Item package-lock.json -Force }
     $installOk = $true
     try { npm install --legacy-peer-deps } catch { $installOk = $false }
-    if (-not $installOk) { throw '[error] npm install failed even with --legacy-peer-deps. Use Node 14.x or resolve peer conflicts.' }
-    Write-Host '[info] New lock file generated using legacy peer deps.' -ForegroundColor Cyan
+    if (-not $installOk) { throw '[error] Resilient install failed even with --legacy-peer-deps. Try Node 14.x (see .nvmrc) or inspect peer conflicts.' }
+    Write-Host "[info] Resilient install complete. Future runs under Node 14 will use npm ci." -ForegroundColor Green
   }
   Pop-Location
   Write-Host 'Running offline verification (advisory)...'
