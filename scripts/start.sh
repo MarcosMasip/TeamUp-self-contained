@@ -44,7 +44,14 @@ else
   # Pre-flight port checks
   for p in "${APP_BACKEND_PORT:-8443}" "${APP_FRONTEND_PORT:-4200}"; do
     if ! check_port_free "$p"; then
-      echo "Port $p already in use. Abort." >&2
+      echo "Port $p already in use." >&2
+      # Show process holding the port (macOS/Linux)
+      if command -v lsof >/dev/null 2>&1; then
+        echo "Process using port $p:" >&2
+        lsof -iTCP:"$p" -sTCP:LISTEN -n -P || true
+      fi
+      echo "Resolve by: (a) stopping the process above, or (b) editing .env to change APP_BACKEND_PORT / APP_FRONTEND_PORT and re-run prepare/start." >&2
+      echo "Abort." >&2
       exit 1
     fi
   done
