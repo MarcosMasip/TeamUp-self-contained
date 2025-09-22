@@ -40,6 +40,14 @@ Admin login credentials (seeded data):
 * Email: admin@admin.com
 * Password: adminadmin
 
+Troubleshooting login ("Wrong Credentials" immediately):
+If the admin credentials fail instantly but you are sure they are correct, open the browser dev tools (Network tab) and inspect the `/login` request:
+* If it was sent to `https://localhost:8443/api/login` and failed with a network / certificate error, you're likely running in fallback (non‑Docker) mode where backend SSL is disabled, yet the frontend pointed to `https://`.
+* Dev fix (already applied in this branch): `environment.ts` uses `http://localhost:8443/api` so the request should succeed.
+* If you purposely enable backend SSL (e.g., Docker mode) but still get an error, trust the self‑signed cert or switch the frontend back to HTTPS.
+* A 302 redirect from `http://` to `https://localhost/api/login` (missing port) indicates mixed configuration; ensure you are not mixing property files or partially enabling SSL. Easiest path: use Docker mode (full HTTPS) OR keep both sides HTTP in fallback.
+
+
 If ports are customized in `.env`, substitute your values.
 
 ### Frontend HTTPS vs HTTP (New Toggle)
