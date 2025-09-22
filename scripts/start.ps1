@@ -51,5 +51,19 @@ if ($Mode -eq 'docker') {
   }
   Start-Process -FilePath npx -ArgumentList 'ng','serve'
   Pop-Location
-  Write-Host 'Processes started (check separate windows).' 
+  # Poll backend health up to 30s
+  $healthUrl = "http://localhost:$backendPort/api/health"
+  for ($i=1; $i -le 30; $i++) {
+    try { $code = (Invoke-WebRequest -UseBasicParsing -Uri $healthUrl -Method GET -TimeoutSec 3).StatusCode } catch { $code = $null }
+    if ($code -eq 200) { Write-Host "[info] Backend health endpoint is UP." -ForegroundColor Green; break }
+    Start-Sleep -Seconds 1
+    if ($i -eq 30) { Write-Host "[warn] Backend health not confirmed yet; continuing anyway." -ForegroundColor Yellow }
+  }
+  Write-Host '--------------------------------------------------'
+  Write-Host "Open Frontend:  http://localhost:$frontendPort"
+  Write-Host "Backend API:    http://localhost:$backendPort/api"
+  Write-Host "Health Check:   $healthUrl"
+  Write-Host "Mail (Docker mode): http://localhost:8025" 
+  Write-Host "Admin login:    admin@admin.com / adminadmin"
+  Write-Host 'Stop processes by closing their windows.'
 }

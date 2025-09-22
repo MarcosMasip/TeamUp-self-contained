@@ -22,6 +22,39 @@ pwsh ./scripts/prepare.ps1
 pwsh ./scripts/start.ps1
 ```
 
+### After Starting (What to Open)
+Regardless of mode the scripts will print a summary. Default URLs:
+
+Docker mode (preferred parity environment):
+* Frontend (HTTP): http://localhost:${APP_FRONTEND_PORT:-4200}
+* Backend API (HTTPS): https://localhost:${APP_BACKEND_PORT:-8443}/api
+* Health Endpoint: https://localhost:${APP_BACKEND_PORT:-8443}/api/health
+* Mail UI (Mailpit): http://localhost:8025
+
+Fallback mode (no Docker detected):
+* Frontend (Angular dev server HTTP): http://localhost:${APP_FRONTEND_PORT:-4200}
+* Backend API (HTTP during early init, then HTTPS if configured) health: http://localhost:${APP_BACKEND_PORT:-8443}/api/health (curl uses -k for self‑signed)
+* Mail UI: (not started – mails logged to console)
+
+Admin login credentials (seeded data):
+* Email: admin@admin.com
+* Password: adminadmin
+
+If ports are customized in `.env`, substitute your values.
+
+### JWT Secret Handling (Security Convenience)
+The Spring Boot backend now validates the configured JWT secret strength at startup.
+* If `JWT_SECRET` / property is strong (>=256-bit after Base64 decode or raw bytes), it is used directly.
+* If it is missing, obviously weak (short / placeholder like `change-me`), or invalid Base64, an EPHEMERAL random HS256 key is generated and logged.
+* Generated ephemeral keys are for local development only; tokens issued with them become invalid on restart.
+To persist sessions across restarts set a strong key in `.env` (Docker) or `application-local-h2.properties` (fallback profile) BEFORE starting:
+```
+JWT_SECRET=$(openssl rand -base64 48)
+```
+Never commit real production secrets. Rotate if leaked.
+
+---
+
 If you prefer a single chained command (Unix-like):
 ```bash
 git clone https://github.com/MarcosMasip/TeamUp-self-contained.git && cd TeamUp-self-contained && chmod +x scripts/*.sh && ./scripts/prepare.sh && ./scripts/start.sh
@@ -81,6 +114,21 @@ Then visit:
 Fallback (no Docker detected):
 - Backend (H2 in‑memory profile) runs with `local-h2` Spring profile.
 - Angular dev server (HTTPS) runs locally.
+
+Example new fallback output (shell):
+```
+Starting fallback local mode...
+[info] Backend health endpoint is UP.
+--------------------------------------------------
+Open Frontend:  http://localhost:4200
+Backend API:    http://localhost:8443/api
+Health Check:   http://localhost:8443/api/health
+Mail (Docker mode): http://localhost:8025
+Admin login:    admin@admin.com / adminadmin
+Stop processes with Ctrl+C.
+```
+
+PowerShell now mirrors this output after parity update.
 
 Stop services:
 - Docker mode: `docker compose down`

@@ -51,6 +51,13 @@ else
   ./mvnw spring-boot:run -Dspring-boot.run.profiles=local-h2 &
   BACK_PID=$!
   echo "Backend PID $BACK_PID"
+  # Wait for backend health (simple loop up to 30s)
+  for i in {1..30}; do
+    if curl -s -o /dev/null -w '%{http_code}' http://localhost:${APP_BACKEND_PORT:-8443}/api/health | grep -q 200; then
+      echo "[info] Backend health endpoint is UP."; break; fi
+    sleep 1
+    if [ $i -eq 30 ]; then echo "[warn] Backend health not confirmed yet; continuing anyway."; fi
+  done
   (
     cd socialnetworkingapp-front
     if command -v node >/dev/null 2>&1; then
@@ -66,6 +73,12 @@ else
   ) &
   FRONT_PID=$!
   echo "Frontend PID $FRONT_PID"
-  echo "Press Ctrl+C to stop."
+  echo "--------------------------------------------------"
+  echo "Open Frontend:  http://localhost:${APP_FRONTEND_PORT:-4200}"
+  echo "Backend API:    http://localhost:${APP_BACKEND_PORT:-8443}/api" 
+  echo "Health Check:   http://localhost:${APP_BACKEND_PORT:-8443}/api/health"
+  echo "Mail (Docker only): http://localhost:8025"
+  echo "Admin login:    admin@admin.com / adminadmin"
+  echo "Press Ctrl+C to stop (both processes)."
   wait
 fi
