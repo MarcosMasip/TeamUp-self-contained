@@ -83,7 +83,7 @@ else
     sleep 1
     if [ $i -eq 30 ]; then echo "[warn] Backend health not confirmed yet; continuing anyway."; fi
   done
-  FRONTEND_SSL_ENABLED=${FRONTEND_SSL:-1}
+  FRONTEND_SSL_ENABLED=${FRONTEND_SSL:-0}
   (
     cd socialnetworkingapp-front
     if command -v node >/dev/null 2>&1; then
@@ -95,25 +95,26 @@ else
         fi
       fi
     fi
-    if [ "$FRONTEND_SSL_ENABLED" = "0" ]; then
-      echo "[info] Starting Angular dev server without SSL (FRONTEND_SSL=0)."
-      npx ng serve --ssl false
+    if [ "$FRONTEND_SSL_ENABLED" = "1" ]; then
+      echo "[info] Starting Angular dev server WITH self-signed HTTPS (FRONTEND_SSL=1)."
+      npx ng serve --ssl true --sslCert ./src/ssl/server.crt --sslKey ./src/ssl/server.key
     else
+      echo "[info] Starting Angular dev server over HTTP (default). Set FRONTEND_SSL=1 to enable self-signed HTTPS."
       npx ng serve
     fi
   ) &
   FRONT_PID=$!
   echo "Frontend PID $FRONT_PID"
   echo "--------------------------------------------------"
-  if [ "$FRONTEND_SSL_ENABLED" = "0" ]; then
-    echo "Open Frontend:  http://localhost:${APP_FRONTEND_PORT:-4200}"
-  else
+  if [ "$FRONTEND_SSL_ENABLED" = "1" ]; then
     echo "Open Frontend:  https://localhost:${APP_FRONTEND_PORT:-4200}"
+  else
+    echo "Open Frontend:  http://localhost:${APP_FRONTEND_PORT:-4200}"
   fi
   echo "Backend API:    https://localhost:${APP_BACKEND_PORT:-8443}/api" 
   echo "Health Check:   https://localhost:${APP_BACKEND_PORT:-8443}/api/health"
   if [ "$FRONTEND_SSL_ENABLED" = "1" ]; then
-    echo "Note: Browser will warn about self-signed certificate. You can proceed (Advanced > Continue) or restart with FRONTEND_SSL=0 ./scripts/start.sh for HTTP."
+    echo "Note: Browser may warn about self-signed certificate. Disable by restarting WITHOUT FRONTEND_SSL=1 (HTTP default)."
   fi
   echo "Mail (Docker only): http://localhost:8025"
   echo "Admin login:    admin@admin.com / adminadmin"

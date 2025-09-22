@@ -43,16 +43,18 @@ Admin login credentials (seeded data):
 If ports are customized in `.env`, substitute your values.
 
 ### Frontend HTTPS vs HTTP (New Toggle)
-By default (fallback/local mode) the Angular dev server now runs with HTTPS using a self‑signed certificate that lives at `socialnetworkingapp-front/src/ssl/server.crt` + `server.key`. Browsers will warn (`NET::ERR_CERT_AUTHORITY_INVALID`). You have three options:
+Default is now plain HTTP (no browser warning). You can opt-in to HTTPS with a self‑signed certificate (files at `socialnetworkingapp-front/src/ssl/server.crt` + `server.key`) by setting `FRONTEND_SSL=1`.
+
+When HTTPS is enabled browsers will warn (`NET::ERR_CERT_AUTHORITY_INVALID`). Options:
 
 | Goal | Action |
 |------|--------|
 | Keep HTTPS & remove warning (macOS/Linux) | Run `./scripts/trust-frontend-cert.sh` (prompts for sudo; adds cert to system trust) |
 | Keep HTTPS & remove warning (Windows) | Import `socialnetworkingapp-front/src/ssl/server.crt` into Trusted Root Certification Authorities (Current User) via `certmgr.msc` |
 | Temporarily proceed | Click Advanced > Continue (unsafe) in browser warning page |
-| Use plain HTTP (no warning) | Start with `FRONTEND_SSL=0 ./scripts/start.sh` (bash) or `$env:FRONTEND_SSL=0; ./scripts/start.ps1` (PowerShell) |
+| Use plain HTTP (no warning) | (Default) just run the start script with no variable |
 
-Re‑enable HTTPS by omitting the variable or setting `FRONTEND_SSL=1`.
+Enable HTTPS by setting `FRONTEND_SSL=1` (bash) or `$env:FRONTEND_SSL=1` (PowerShell) before running the start script.
 
 Note: Disabling frontend SSL does NOT disable backend HTTPS. API calls still go through the Angular dev proxy avoiding mixed content problems.
 

@@ -53,7 +53,7 @@ if ($Mode -eq 'docker') {
   Pop-Location
   # Poll backend health up to 30s
   $healthUrl = "http://localhost:$backendPort/api/health"
-  if (-not $env:FRONTEND_SSL) { $env:FRONTEND_SSL = '1' }
+  if (-not $env:FRONTEND_SSL) { $env:FRONTEND_SSL = '0' }
 
   # Start frontend (Angular) with optional SSL toggle
   for ($i=1; $i -le 30; $i++) {
@@ -63,17 +63,10 @@ if ($Mode -eq 'docker') {
     if ($i -eq 30) { Write-Host "[warn] Backend health not confirmed yet; continuing anyway." -ForegroundColor Yellow }
   }
   Write-Host '--------------------------------------------------'
-  if ($env:FRONTEND_SSL -eq '0') {
-    Write-Host "Open Frontend:  http://localhost:$frontendPort"
-  }
-  else {
-    Write-Host "Open Frontend:  https://localhost:$frontendPort"
-  }
+  if ($env:FRONTEND_SSL -eq '1') { Write-Host "Open Frontend:  https://localhost:$frontendPort" } else { Write-Host "Open Frontend:  http://localhost:$frontendPort" }
   Write-Host "Backend API:    https://localhost:$backendPort/api"
   Write-Host "Health Check:   $healthUrl"
-  if ($env:FRONTEND_SSL -eq '1') {
-    Write-Host "Note: Browser will warn about self-signed certificate. Proceed (Advanced > Continue) or restart with FRONTEND_SSL=0 .\\scripts\\start.ps1 for HTTP."
-  }
+  if ($env:FRONTEND_SSL -eq '1') { Write-Host "Note: Browser may warn about self-signed certificate. Disable by restarting without FRONTEND_SSL=1 (HTTP default)." }
   Write-Host "Mail (Docker mode): http://localhost:8025" 
   Write-Host "Admin login:    admin@admin.com / adminadmin"
   Write-Host 'Stop processes by closing their windows.'
