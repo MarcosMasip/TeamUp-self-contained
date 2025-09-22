@@ -83,6 +83,58 @@ Run backend locally (Hot reload via Spring dev tools if added later) and Dockeri
 * Self-signed certificate used for local HTTPS; trust manually if browser warns.
 * CORS origins now centrally controlled by `CORS_ALLOWED_ORIGINS`.
 
+### Cross-Platform Usage (macOS / Linux / Windows)
+
+All automation now ships with both POSIX shell (`.sh`) and PowerShell (`.ps1`) variants plus simple `.cmd` launchers for Windows double‑click usage.
+
+Prerequisites (all platforms):
+- Git
+- Java 8 (Temurin / OpenJDK) available on PATH (fallback & dev modes)
+- Node.js 14.x (as per `.nvmrc`) for fallback & dev modes (Docker mode builds inside containers)
+- Docker Desktop / Engine (if you want full Docker mode; otherwise fallback engages automatically)
+
+Windows specifics:
+- Open a PowerShell terminal (v5+ or PowerShell 7+ recommended).
+- If scripts are blocked, temporarily allow: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`.
+- Use either: `pwsh ./scripts/prepare.ps1` then `pwsh ./scripts/start.ps1` OR just double‑click `scripts/prepare.cmd` then `scripts/start.cmd` in Explorer.
+
+macOS / Linux:
+- Ensure scripts are executable: `chmod +x scripts/*.sh` (already committed with +x if cloned on a Unix filesystem).
+- Run: `./scripts/prepare.sh` then `./scripts/start.sh`.
+
+Ports & Conflicts:
+- Backend: `${APP_BACKEND_PORT:-8443}` (HTTPS)
+- Frontend: `${APP_FRONTEND_PORT:-4200}` (HTTP in Docker / Angular dev server in fallback)
+- Postgres: `${POSTGRES_PORT:-5432}`
+- Mailpit: `8025`
+If a port is taken in fallback mode, the shell/PowerShell scripts abort with a clear message.
+
+Line Endings:
+- All committed scripts use LF. If you clone on Windows with core.autocrlf=true and encounter execution issues, run: `git config core.autocrlf false` and re‑checkout, or convert with: `dos2unix scripts/*.sh`.
+
+Environment File:
+- If `.env` is absent, `prepare` scripts copy `.env.example` automatically. Customize values there before `start` if you need different ports or secrets.
+
+Docker Compose Variants:
+- Scripts auto‑detect `docker compose` (plugin) vs legacy `docker-compose` binary; no user action needed.
+
+Troubleshooting Quick Reference:
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| PowerShell script blocked | Execution policy | Run temporary bypass command above |
+| Backend health fails in Docker start | Slow Postgres init | Re-run `./scripts/start.sh`; readiness retry already built-in |
+| Frontend 404 in browser (Docker mode) | Angular build not yet served / container not up | Wait a few seconds or check `docker compose ps` |
+| Port already in use (fallback) | Another service occupying 4200/8443 | Stop conflicting process or change port in `.env` |
+
+### Platform Validation (Optional)
+You can add (or we may later include) a `scripts/check-platform.sh` / `.ps1` to print detected versions. For now, quickly check:
+```
+java -version
+node -v
+docker --version
+```
+If any are missing (and you rely on fallback/local), install them before proceeding.
+
 ### Future Enhancements (Preview)
 Roadmap ideas (see full backlog section to be added below):
 - Migrate to Bootstrap 5 (remove jQuery dependency)

@@ -4,8 +4,15 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/util.sh"
 
 MODE="docker"
+DC="docker compose"
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
   MODE="fallback"
+else
+  if ! docker compose version >/dev/null 2>&1; then
+    if command -v docker-compose >/dev/null 2>&1; then
+      DC="docker-compose"
+    fi
+  fi
 fi
 
 if [ ! -f .env ]; then
@@ -14,19 +21,19 @@ fi
 set -a; source .env; set +a
 
 if [ "$MODE" = "docker" ]; then
-  echo "Starting services (docker compose)..."
-  docker compose up -d db mail
+  echo "Starting services ($DC)..."
+  $DC up -d db mail
   echo "Waiting for database port..."
-  retry_cmd 10 2 docker compose exec -T db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" || echo "[warn] pg_isready did not fully succeed, continuing to backend start attempt"
-  docker compose up -d backend
+  retry_cmd 10 2 $DC exec -T db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" || echo "[warn] pg_isready did not fully succeed, continuing to backend start attempt"
+  $DC up -d backend
   echo "Waiting for backend health..."
   for i in {1..30}; do
-    if docker compose ps | grep backend >/dev/null 2>&1 && curl -k -s https://localhost:${APP_BACKEND_PORT:-8443}/api/health | grep -q UP; then
+    if $DC ps | grep backend >/dev/null 2>&1 && curl -k -s https://localhost:${APP_BACKEND_PORT:-8443}/api/health | grep -q UP; then
       break
     fi
     sleep 2
   done
-  docker compose up -d frontend
+  $DC up -d frontend
   echo "Application started."
   echo "Frontend: http://localhost:${APP_FRONTEND_PORT:-4200}"
   echo "Backend API: https://localhost:${APP_BACKEND_PORT:-8443}/api" 

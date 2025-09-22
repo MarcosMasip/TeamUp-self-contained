@@ -2,8 +2,15 @@
 set -euo pipefail
 
 MODE="docker"
+DC="docker compose"
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
   MODE="fallback"
+else
+  if ! docker compose version >/dev/null 2>&1; then
+    if command -v docker-compose >/dev/null 2>&1; then
+      DC="docker-compose"
+    fi
+  fi
 fi
 
 if [ ! -f .env ]; then
