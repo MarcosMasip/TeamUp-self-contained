@@ -38,12 +38,11 @@ export class AccountService {
     return this.http.get<Account[]>(`${this.url}/find/names/${keyword}`);
   }
 
-  public registerAccount(account: Account): Observable<Account> {
-
-    let httpOptions = { headers: new HttpHeaders(
-      { 'Content-Type': 'application/json', })};
-    return this.http.post<Account>(`${environment.apiBaseUrl}/register`,
-      account,httpOptions);
+  // Registration endpoint actually expects a RegistrationRequest (firstName, lastName, email, password, phone, interests[] of Tag objects)
+  // We keep the method name for backward compatibility but accept a generic payload.
+  public registerAccount(registrationRequest: any): Observable<Account> {
+    const httpOptions = { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) };
+    return this.http.post<Account>(`${environment.apiBaseUrl}/register`, registrationRequest, httpOptions);
   }
 
   public updateAccount(account: Account): Observable<Account> {

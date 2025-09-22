@@ -109,14 +109,9 @@
             </div>
             <div class="actions clearfix">
               <button [disabled]="registerForm.invalid" type="submit" class="btn btn-primary btn-block">Sign up</button>
-                <div *ngIf="correctCredentials else wrongCredentials">
-                </div>
-                <ng-template #wrongCredentials >
-                    <span> A user with the same email or phone number already exists.</span>
-                    <br>
-                    <span> Try using different credentials.</span>
-                </ng-template>
-
+              <div *ngIf="errorMessage" class="mt-2 alert alert-danger p-2">
+                {{errorMessage}}
+              </div>
             </div>
             <a href="#" class="additional-link">Have an Account? <span>Login Now</span></a>
           </div>

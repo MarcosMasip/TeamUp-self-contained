@@ -19,6 +19,7 @@ export class RegisterComponent implements OnInit {
 
   registerForm!: FormGroup;
   correctCredentials = true;
+  errorMessage: string | null = null; // holds dynamic backend error messages
   selectedFiles: FileList | null = null;
   currentFile: File | null = null;
   progress = 0;
@@ -144,22 +145,46 @@ export class RegisterComponent implements OnInit {
     }
 
   public onRegister(registerForm: FormGroup): void {
+    // Build payload explicitly to match backend RegistrationRequest contract
+    const raw = registerForm.value;
+    const interests = (raw.interests || []).map((t: string) => ({ tag: t }));
+    const payload = {
+      firstName: raw.firstName,
+      lastName: raw.lastName,
+      email: raw.email,
+      password: raw.password,
+      phone: raw.phone,
+      interests: interests
+    };
 
-    this.accountService.registerAccount(registerForm.value).subscribe(
-      (response: Account) => {
-        this.authService.logIn({ 'username': registerForm.get('email')?.value, 'password': registerForm.get('password')?.value }).subscribe(
-          (newResponse: boolean) => {
+    this.errorMessage = null;
+    this.correctCredentials = true;
+
+    this.accountService.registerAccount(payload).subscribe(
+      () => {
+        this.authService.logIn({ 'username': payload.email, 'password': payload.password }).subscribe(
+          () => {
             this.onClickModal('addPhoto');
           },
-          (error) => {
-            console.log(error);
+          (loginError) => {
+            console.error('[register] auto-login failed after registration', loginError);
+            this.errorMessage = 'Account created but automatic login failed. Please login manually.';
           }
-        )
+        );
       },
       (error: any) => {
-        this.correctCredentials = false;
-        this.registerForm.reset();
-        console.log(error);
+        console.error('[register] registration failed', error);
+        this.correctCredentials = false; // keep legacy flag (unused by new message block but might be referenced elsewhere)
+        // Distinguish common failure modes
+        if (error.status === 409) {
+          this.errorMessage = 'A user with the same email or phone already exists.';
+        } else if (error.status === 400) {
+          this.errorMessage = 'Invalid registration data. Please review your inputs.';
+        } else if (error.status === 0) {
+          this.errorMessage = 'Cannot reach server. Check your network connection.';
+        } else {
+          this.errorMessage = 'Registration failed with error ' + (error.error?.message || error.statusText || error.status);
+        }
       }
     );
 
