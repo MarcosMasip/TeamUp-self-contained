@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HealthController {
 
-    @GetMapping("/api/health")
+    // Context path is /api (see application.properties), so mapping should NOT repeat /api
+    @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok().body(new Status("UP"));
     }
