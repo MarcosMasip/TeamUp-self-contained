@@ -183,7 +183,8 @@ export class RegisterComponent implements OnInit {
         } else if (error.status === 0) {
           this.errorMessage = 'Cannot reach server. Check your network connection.';
         } else {
-          this.errorMessage = 'Registration failed with error ' + (error.error?.message || error.statusText || error.status);
+          const backendMsg = (error.error && (error.error.message || error.error.error || JSON.stringify(error.error))) || error.message || error.statusText || error.status;
+          this.errorMessage = 'Registration failed: ' + backendMsg;
         }
       }
     );
