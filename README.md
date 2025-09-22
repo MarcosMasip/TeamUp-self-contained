@@ -1,4 +1,97 @@
 # Team Up! :partying_face:
+
+## Self-Contained Edition (2025 Refresh)
+
+This repository has been upgraded to be fully reproducible and offline‑capable: one command to prepare, one to run. All previous documentation follows below; this section summarizes the new operational model.
+
+### Quick Start
+
+Clone the repo and run:
+
+```
+./scripts/prepare.sh   # builds Docker images or prepares local fallback
+./scripts/start.sh     # launches full stack (Docker) OR local fallback if Docker unavailable
+```
+
+Then visit:
+- Frontend (Docker mode): http://localhost:${APP_FRONTEND_PORT:-4200}
+- Backend API: https://localhost:${APP_BACKEND_PORT:-8443}/api
+- Mail (mock inbox – Mailpit): http://localhost:8025
+
+Fallback (no Docker detected):
+- Backend (H2 in‑memory profile) runs with `local-h2` Spring profile.
+- Angular dev server (HTTPS) runs locally.
+
+Stop services:
+- Docker mode: `docker compose down`
+- Fallback: Ctrl+C in terminal.
+
+### Architecture Overview
+
+| Layer        | Technology | Notes |
+|--------------|------------|-------|
+| Backend API  | Spring Boot (Java 8) | JWT auth, health endpoint `/api/health`, optional mock mail |
+| Database     | PostgreSQL 13 | Volume persisted in Docker; H2 in fallback profile |
+| Frontend SPA | Angular 12 + Bootstrap 4 | Served by Nginx in production container |
+| Mail Testing | Mailpit | Captures outgoing mails (currently mocked/logged) |
+| Reverse Proxy| Nginx (frontend container) | Static SPA + asset serving |
+
+### Run Modes
+
+| Mode | Trigger | DB | Mail | TLS | Notes |
+|------|---------|----|------|-----|-------|
+| Docker (default) | Docker present & usable | Postgres | Mailpit | Backend HTTPS (self-signed) | Recommended for parity |
+| Fallback Local   | Docker missing/unavailable | H2 in‑memory | Logging mock | Self-signed frontend, backend HTTPS | Dev convenience |
+
+### Environment Variables (`.env`)
+Create `.env` from `.env.example` (done automatically by `prepare.sh` if absent). Key variables:
+
+| Variable | Purpose | Example | Fallback Default |
+|----------|---------|---------|------------------|
+| APP_BACKEND_PORT | Exposed backend HTTPS port | 8443 | 8443 |
+| APP_FRONTEND_PORT | Exposed frontend HTTP port (Nginx / dev) | 4200 | 4200 |
+| POSTGRES_PORT | Host Postgres port | 5432 | 5432 |
+| POSTGRES_DB | Database name | app | app |
+| POSTGRES_USER | DB user | appuser | appuser |
+| POSTGRES_PASSWORD | DB password | apppass | apppass |
+| CORS_ALLOWED_ORIGINS | Comma list for CORS | https://localhost:4200 | Injected into Spring |
+| JWT_SECRET | Signing key (change in prod) | change-me-please | fallback profile has a dev value |
+| FILE_UPLOAD_DIR | Host directory for uploaded files | ./uploads | Mounted volume |
+
+### Offline Guarantee
+
+- All 3rd-party CSS/JS previously loaded via CDN (Bootstrap, Font Awesome, jQuery, Popper, Google Fonts) are now bundled locally.
+- Custom font usage uses local `@font-face` declarations (place actual font files under `socialnetworkingapp-front/src/assets/fonts/`).
+- Verification: `./scripts/offline-verify.sh` (automatically run inside `prepare.sh`). Script fails the Docker build path if external URLs are detected (excluding localhost/mailpit).
+
+### Health & Verification
+
+| Command | What it checks |
+|---------|----------------|
+| `./scripts/health.sh` | Backend `/api/health` returns UP, frontend root loads |
+| `./scripts/offline-verify.sh` | Scans source for `http(s)://` references outside allowed list |
+
+### Dev Mode (Hybrid)
+
+Run backend locally (Hot reload via Spring dev tools if added later) and Dockerized infra for db & mail:
+```
+./scripts/dev.sh
+```
+
+### Security Notes
+* Never commit a real production `JWT_SECRET`.
+* Self-signed certificate used for local HTTPS; trust manually if browser warns.
+* CORS origins now centrally controlled by `CORS_ALLOWED_ORIGINS`.
+
+### Future Enhancements (Preview)
+Roadmap ideas (see full backlog section to be added below):
+- Migrate to Bootstrap 5 (remove jQuery dependency)
+- WebSocket or SSE chat (replace polling)
+- Actuator endpoints & metrics
+- Automated E2E tests (Cypress / Playwright)
+- SBOM & security scanning (Trivy, OWASP Dependency Check)
+
+---
 #### A professional networking application for the course *Web Development Technologies* in collaboration with [Christos Laspias](https://github.com/ChrisLaspias).
 
 ## 0. Abstract
@@ -46,6 +139,7 @@ The aforementioned filtering is being implemented with the use of Matrix Factori
 collaborative filtering algorithm used in Recommendation Systems.
 
 ## 1. Usage
+> NOTE: The legacy usage section below predates the self-contained scripting workflow. Prefer the Quick Start at the top for current instructions.
 ### 1.1. SSL Certificate
 Before launching the application, there may be need to trust the app’s
 self-signed certificate ```server.crt```, which is located under:
@@ -317,3 +411,23 @@ that post.
 - https://newbedev.com/
 - https://codecraft.tv/
 - https://roytuts.com/
+
+---
+
+## Future Enhancements Backlog (Operational Refresh)
+
+| Area | Idea | Rationale |
+|------|------|-----------|
+| Frontend UI | Migrate to Bootstrap 5 / remove jQuery | Smaller bundle, modern components |
+| Realtime | Replace polling chat with WebSocket (STOMP) or SSE | Lower latency, efficiency |
+| Observability | Add Spring Boot Actuator + Prometheus/OpenTelemetry | Production metrics & tracing |
+| Security | Integrate vulnerability scanning (Trivy, OWASP Dependency Check) | Supply chain safety |
+| Auth | Rotate JWT secret via KMS/Secrets Manager abstraction | Secure secret lifecycle |
+| Testing | Add API tests (REST Assured) + E2E (Playwright/Cypress) | Confidence & regression safety |
+| Performance | Add lazy loading routes & code splitting | Faster initial paint |
+| Packaging | Multi-arch Docker images (buildx) | Wider deployment targets |
+| Accessibility | ARIA audits & semantic improvements | Inclusive UX |
+| DB | Flyway or Liquibase baseline migration | Controlled schema evolution |
+
+## Fonts
+Local `@font-face` declarations reference placeholder Montserrat files under `socialnetworkingapp-front/src/assets/fonts/`. Supply actual `.woff2` / `.woff` files (only needed weights) to avoid licensing surprises and reduce bundle size.

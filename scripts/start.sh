@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/util.sh"
 
 MODE="docker"
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
@@ -14,8 +16,8 @@ set -a; source .env; set +a
 if [ "$MODE" = "docker" ]; then
   echo "Starting services (docker compose)..."
   docker compose up -d db mail
-  echo "Waiting for database..."
-  sleep 10
+  echo "Waiting for database port..."
+  retry_cmd 10 2 docker compose exec -T db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" || echo "[warn] pg_isready did not fully succeed, continuing to backend start attempt"
   docker compose up -d backend
   echo "Waiting for backend health..."
   for i in {1..30}; do
@@ -32,6 +34,13 @@ if [ "$MODE" = "docker" ]; then
   echo "Admin login: admin@admin.com / adminadmin"
 else
   echo "Starting fallback local mode..."
+  # Pre-flight port checks
+  for p in "${APP_BACKEND_PORT:-8443}" "${APP_FRONTEND_PORT:-4200}"; do
+    if ! check_port_free "$p"; then
+      echo "Port $p already in use. Abort." >&2
+      exit 1
+    fi
+  done
   ./mvnw spring-boot:run -Dspring-boot.run.profiles=local-h2 &
   BACK_PID=$!
   echo "Backend PID $BACK_PID"
