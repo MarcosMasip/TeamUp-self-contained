@@ -52,21 +52,44 @@ export class RegisterComponent implements OnInit {
             firstName: new FormControl('', [Validators.required, Validators.maxLength(20), Validators.pattern('[a-zA-Z ]*')]),
             lastName: new FormControl('', [Validators.required, Validators.maxLength(20), Validators.pattern('[a-zA-Z ]*')]),
             phone: new FormControl('', [Validators.required, Validators.pattern('[0-9]*'), Validators.maxLength(15)]),
-            interests: this.fb.array([],[Validators.required , Validators.minLength(2)])
+            // Interests are required (min 2) only if we actually have tags to show; validator swapped dynamically after load.
+            interests: this.fb.array([])
         },
             { validator: this.checkPasswords }
         );
 
-        this.tagsService.getAllTags().subscribe(
-          (response: Tag[]) => {
-            this.TagsArray = response;
-          },
-          (err) => {
-            console.error('[register] Failed to load tags', err);
-            this.TagsArray = [];
-          }
-        );
+        this.loadTags();
 
+    }
+    private loadTags(){
+      this.tagsService.getAllTags().subscribe(
+        (response: Tag[]) => {
+          this.TagsArray = response || [];
+          if(this.TagsArray.length === 0){
+            // Fallback default tags (mirrors seed data) so user can still choose.
+            this.TagsArray = [ 'TECHNOLOGY','BUSINESS','MACHINE LEARNING','SOFTWARE' ].map(t=> new Tag(t));
+          }
+          this.applyInterestValidators();
+        },
+        (err) => {
+          console.error('[register] Failed to load tags', err);
+          // Provide fallback defaults instead of blocking registration.
+          this.TagsArray = [ 'TECHNOLOGY','BUSINESS','MACHINE LEARNING','SOFTWARE' ].map(t=> new Tag(t));
+          this.applyInterestValidators();
+        }
+      );
+    }
+
+    private applyInterestValidators(){
+      const interestsCtl = this.registerForm.get('interests');
+      if(!interestsCtl){ return; }
+      if(this.TagsArray.length > 0){
+        interestsCtl.setValidators([Validators.required, Validators.minLength(2)]);
+      } else {
+        // No tags available, make interests optional so user can sign up.
+        interestsCtl.clearValidators();
+      }
+      interestsCtl.updateValueAndValidity();
     }
 
     onCbChange(e : any) {

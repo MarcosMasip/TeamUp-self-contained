@@ -26,7 +26,7 @@ public class AdminBootstrap implements CommandLineRunner {
         accountRepository.findAccountByEmail(email).ifPresentOrElse(acc -> {
             log.debug("[bootstrap] Admin account already present (id={})", acc.getId());
         }, () -> {
-            log.info("[bootstrap] Creating missing admin account (property-controlled bootstrap)");
+            log.info("[bootstrap] Creating missing admin account (property-controlled bootstrap) with email={} password=adminadmin", email);
             Account admin = new Account(AccountRole.ADMIN, "Admin", "Admin", email, encoder.encode("adminadmin"), "0000000000");
             accountRepository.save(admin);
         });

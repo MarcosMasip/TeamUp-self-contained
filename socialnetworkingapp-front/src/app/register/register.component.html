@@ -91,16 +91,18 @@
               <div class="col-xl-12 col-lg-6 col-md-6 col-sm-6 col-12">
                 Pick the tags that interest you the most!
                 <hr>
-                <div class="form-group" style="height: 190px;overflow-y: scroll">
+                <div class="form-group" style="height: 190px;overflow-y: scroll" *ngIf="TagsArray && TagsArray.length > 0; else noTagsBlock">
                   <div *ngFor="let item of TagsArray; let i = index ">
                     <label>
                       <input type = "checkbox" [value] = "item.tag" (change)="onCbChange($event)"/>
                       {{item.tag}}
                     </label>
-
                   </div>
                 </div>
-                <a class="text-muted">At least 2 tags are required.</a>
+                <ng-template #noTagsBlock>
+                  <div class="alert alert-info p-2">No tags available right now. You can finish registration and add interests later.</div>
+                </ng-template>
+                <a class="text-muted" *ngIf="TagsArray && TagsArray.length > 0">At least 2 tags are required.</a>
               </div>
 
 
