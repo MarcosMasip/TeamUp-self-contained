@@ -832,3 +832,42 @@ The integration test asserts JSON response schema:
 ```
 
 > NOTE: In real deployments consider rotating the admin bootstrap into a migration or guarded initializer to avoid accidental admin recreation outside dev profiles.
+
+### Property-Driven Admin Bootstrap (New)
+
+The original `AdminBootstrap` component only executed under the `local-h2` profile. After disabling the heavy sample data script (`import.sql`) this meant the default admin user might be missing when running with the default (PostgreSQL) profile, leading to apparent "Wrong Credentials" errors in the UI (the account simply did not exist yet).
+
+To make the experience consistent across profiles the bootstrap is now controlled by a property:
+
+```
+app.admin.bootstrap.enabled=true
+```
+
+Behavior:
+* When `true` (default / missing), application startup checks for `admin@admin.com`; if absent it creates it with password `adminadmin` and role `ADMIN`.
+* When `false`, no automatic admin creation occurs (useful for staging / prod where you manage accounts explicitly or have real migrations).
+
+Disable example (any profile):
+```
+app.admin.bootstrap.enabled=false
+```
+or environment variable style:
+```
+APP_ADMIN_BOOTSTRAP_ENABLED=false
+```
+
+Security Note:
+Leaving this enabled in a shared or production-like environment can (re)create a well-known credential pair if the admin is deleted. Always disable it outside local development and create a secure admin manually (and rotate the password immediately after first login).
+
+Troubleshooting Matrix (Admin Login):
+| Symptom | Likely Cause | Resolution |
+|---------|--------------|-----------|
+| 401/403 on `/auth/login` with correct credentials | Admin account missing | Ensure `app.admin.bootstrap.enabled=true` then restart; verify log `[bootstrap] Creating missing admin account` |
+| "Wrong Credentials" UI toast instantly | Frontend hitting endpoint but backend returned 401 | Same as above or password changed; reset by disabling bootstrap (if undesired) and create new admin manually |
+| Admin recreated after deletion during testing | Bootstrap still enabled | Set property to false and restart |
+
+Log Messages:
+* Creation: `[bootstrap] Creating missing admin account (property-controlled bootstrap)`
+* Already present (DEBUG level): `[bootstrap] Admin account already present (id=...)`
+
+If you later introduce Flyway/Liquibase migrations, move this logic into an idempotent migration or dedicated provisioning tool and remove the runtime bootstrap.

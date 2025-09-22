@@ -7,12 +7,12 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("local-h2")
+@ConditionalOnProperty(prefix = "app.admin.bootstrap", name = "enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 public class AdminBootstrap implements CommandLineRunner {
 
@@ -26,7 +26,7 @@ public class AdminBootstrap implements CommandLineRunner {
         accountRepository.findAccountByEmail(email).ifPresentOrElse(acc -> {
             log.debug("[bootstrap] Admin account already present (id={})", acc.getId());
         }, () -> {
-            log.info("[bootstrap] Creating missing admin account for local-h2 profile");
+            log.info("[bootstrap] Creating missing admin account (property-controlled bootstrap)");
             Account admin = new Account(AccountRole.ADMIN, "Admin", "Admin", email, encoder.encode("adminadmin"), "0000000000");
             accountRepository.save(admin);
         });
